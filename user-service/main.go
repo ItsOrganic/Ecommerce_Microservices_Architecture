@@ -4,6 +4,7 @@ import (
 	"log"
 	"user-service/db"
 	"user-service/handler"
+	"user-service/utils"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -17,6 +18,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error connecting to database: %v", err)
 	}
+	utils.InitMQ()
+	defer utils.CloseMQ()
 
 	router := gin.Default()
 	router.POST("/register", handler.RegisterUser)

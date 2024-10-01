@@ -2,9 +2,11 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"user-service/db"
+	"user-service/utils"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -62,6 +64,8 @@ func UpdateProfile(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating user"})
 		return
 	}
+
+	utils.EmitEvents(fmt.Sprintf("user updated %s", update.Name))
 
 	c.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully"})
 }

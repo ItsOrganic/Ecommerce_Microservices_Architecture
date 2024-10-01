@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"user-service/db"
 	"user-service/model"
+	"user-service/utils"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -31,6 +33,7 @@ func RegisterUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error inserting user"})
 		return
 	}
+	utils.EmitEvents(fmt.Sprintf("user_registered %s", user))
 	c.JSON(http.StatusOK, user)
 }
 
