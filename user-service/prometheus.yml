@@ -3,10 +3,10 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:8081']
 
-  - job_name: 'product-service'
-    static_configs:
-      - targets: ['localhost:8082']
+  # - job_name: 'product-service'
+  #   static_configs:
+  #     - targets: ['localhost:8082']
 
-  - job_name: 'order-service'
-    static_configs:
-      - targets: ['localhost:8083']
+  # - job_name: 'order-service'
+  #   static_configs:
+  #     - targets: ['localhost:8083']

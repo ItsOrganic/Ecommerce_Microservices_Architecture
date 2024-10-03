@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"user-service/db"
 	"user-service/model"
-	"user-service/utils"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -22,7 +21,8 @@ func RegisterUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	// hash password
+
+	// Hash password
 	hashedPassword, err := HashPassword(user.Password)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error hashing password"})
@@ -31,20 +31,42 @@ func RegisterUser(c *gin.Context) {
 	user.Password = hashedPassword
 	user.ID = primitive.NewObjectID()
 
-	//check if user already exists
+	// Check if the user already exists
 	indexModel := mongo.IndexModel{
 		Keys:    bson.D{{Key: "email", Value: 1}}, // 1 for ascending order
 		Options: options.Index().SetUnique(true),
 	}
-	db.MI.DB.Collection("users").Indexes().CreateOne(context.TODO(), indexModel)
 
-	// insert user into db
-	_, err = db.MI.DB.Collection("users").InsertOne(c, user)
+	// Create index if it doesn't exist
+	_, err = db.MI.DB.Collection("users").Indexes().CreateOne(context.TODO(), indexModel)
+	if err != nil && !mongo.IsDuplicateKeyError(err) {
+		// Log the error
+		fmt.Printf("Error creating index: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating index"})
+		return
+	}
+
+	// Insert user into the db
+	_, err = db.MI.DB.Collection("users").InsertOne(context.TODO(), user)
 	if err != nil {
+		// Log the error
+		fmt.Printf("Error inserting user: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "User already exists"})
 		return
 	}
-	utils.EmitEvents(fmt.Sprintf("user_registered %s", user))
+
+	// Emit registration event
+	// utils.EmitEvents(fmt.Sprintf("user_registered %s", user.ID.Hex()))
+	// userJson, err := json.Marshal(user)
+	// if err != nil {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Error marshalling user"})
+	// 	return
+	// }
+	// err = utils.EmitEvent("user_registered", string(userJson))
+	// if err != nil {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Error emitting event"})
+	// 	return
+	// }
 	c.JSON(http.StatusOK, user)
 }
 

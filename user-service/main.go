@@ -6,20 +6,25 @@ import (
 	"user-service/handler"
 	"user-service/metrics"
 	"user-service/middleware"
-	"user-service/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	var err error
-	err = db.Connect("mongodb://mongodb:27017/user-service", "user-service", "users")
+	err = db.Connect("mongodb://mongodb:27017", "user-service", "users")
 	if err != nil {
 		log.Fatalf("Error connecting to database: %v", err)
 	}
-	utils.InitMQ()
+	// utils.InitMQ()
 	metrics.Init()
-	defer utils.CloseMQ()
+	// defer utils.CloseMQ()
+
+	// err = utils.InitMQ("amqp://rabbitmq:5672")
+	// if err != nil {
+	// 	log.Fatalf("Error connecting to RabbitMQ: %v", err)
+	// }
+	// defer utils.CloseMQ()
 
 	router := gin.Default()
 	router.Use(middleware.PrometheusMiddleware())
@@ -31,5 +36,4 @@ func main() {
 	router.GET("/profile/:id", handler.GetProfile)
 	router.PUT("/profile/:id", handler.UpdateProfile)
 	router.Run(":8081")
-
 }
