@@ -4,6 +4,8 @@ import (
 	"log"
 	"user-service/db"
 	"user-service/handler"
+	"user-service/metrics"
+	"user-service/middleware"
 	"user-service/utils"
 
 	"github.com/gin-gonic/gin"
@@ -16,9 +18,12 @@ func main() {
 		log.Fatalf("Error connecting to database: %v", err)
 	}
 	utils.InitMQ()
+	metrics.Init()
 	defer utils.CloseMQ()
 
 	router := gin.Default()
+	router.Use(middleware.PrometheusMiddleware())
+	router.GET("/metrics", metrics.PrometheusHandler)
 	router.POST("/register", handler.RegisterUser)
 	router.POST("/login", handler.AuthenticateUser)
 	router.GET("/users", handler.GetUsers)

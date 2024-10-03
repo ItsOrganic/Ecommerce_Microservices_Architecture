@@ -1,0 +1,88 @@
+version: '3.8'  # Specify the Docker Compose file version
+
+services:
+  mongo:
+    image: mongo:7.0  # Use the latest MongoDB image
+    container_name: mongo
+    ports:
+      - "27017:27017"  # Map MongoDB port to host
+    networks:
+      - my-network  # Use a custom network
+    mem_limit: 512M
+
+  rabbitmq:
+    image: rabbitmq:3-management  # Use the RabbitMQ image with management plugin
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"  # RabbitMQ port
+      - "15672:15672"  # Management UI port
+    environment:
+      RABBITMQ_DEFAULT_USER: user  # Default RabbitMQ username
+      RABBITMQ_DEFAULT_PASS: user  # Default RabbitMQ user
+    networks:
+      - my-network  # Use the same network
+    mem_limit: 512M
+
+
+  user-service:
+    build:
+      context: ./user-service  # Build context for user-service
+    ports:
+      - "8081:8081"  # Map user-service port to host
+    depends_on:
+      - mongo  # Ensure mongo starts before user-service
+      - rabbitmq  # Ensure RabbitMQ starts before user-service
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/user-service  # MongoDB connection string
+      - RABBITMQ_URI=amqp://user:user@rabbitmq:5672  # RabbitMQ connection string
+    networks:
+      - my-network
+    mem_limit: 512M
+
+  product-service:
+    build:
+      context: ./product-service  # Build context for product-service
+    ports:
+      - "8082:8082"  # Map product-service port to host
+    depends_on:
+      - mongo  # Ensure mongo starts before product-service
+      - rabbitmq  # Ensure RabbitMQ starts before product-service
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/product-service  # MongoDB connection string
+      - RABBITMQ_URI=amqp://user:user@rabbitmq:5672  # RabbitMQ connection string
+    networks:
+      - my-network
+    mem_limit: 512M
+
+  order-service:
+    build:
+      context: ./order-service  # Build context for order-service
+    ports:
+      - "8083:8083"  # Map order-service port to host
+    depends_on:
+      - mongo  # Ensure mongo starts before order-service
+      - rabbitmq  # Ensure RabbitMQ starts before order-service
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/order-service  # MongoDB connection string
+      - RABBITMQ_URI=amqp://user:user@rabbitmq:5672  # RabbitMQ connection string
+    networks:
+      - my-network
+    mem_limit: 512M
+
+
+  graphql-gateway:
+    build:
+      context: ./graphql-gateway  # Build context for graphql-gateway
+    ports:
+      - "8080:8080"  # Map graphql-gateway port to host
+    depends_on:
+      - user-service
+      - product-service
+      - order-service
+    networks:
+      - my-network
+    mem_limit: 512M
+
+networks:
+  my-network:
+    driver: bridge  # Use a bridge network for inter-service communication

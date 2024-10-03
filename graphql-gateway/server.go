@@ -1,7 +1,6 @@
 package main
 
 import (
-	"gpql-gateway/db"
 	"gpql-gateway/graph"
 	"log"
 	"net/http"
@@ -18,15 +17,6 @@ func main() {
 	if port == "" {
 		port = defaultPort
 	}
-	err := db.Connect("mongodb://localhost:27017", "user-service", "users")
-	if err != nil {
-		log.Fatalf("Error connecting to database: %v", err)
-	}
-	err = db.Connect("mongodb://localhost:27017", "product-db", "products")
-	if err != nil {
-		log.Fatal("error connecting to the database: ", err)
-	}
-
 	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))

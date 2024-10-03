@@ -33,7 +33,7 @@ func RegisterUser(c *gin.Context) {
 
 	//check if user already exists
 	indexModel := mongo.IndexModel{
-		Keys:    bson.D{{"email", 1}}, // 1 for ascending order
+		Keys:    bson.D{{Key: "email", Value: 1}}, // 1 for ascending order
 		Options: options.Index().SetUnique(true),
 	}
 	db.MI.DB.Collection("users").Indexes().CreateOne(context.TODO(), indexModel)
@@ -72,6 +72,7 @@ func GetUsers(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, users)
 }
+
 func GetUser(c *gin.Context) {
 	var user model.User
 	id := c.Param("id")
@@ -80,7 +81,7 @@ func GetUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
 		return
 	}
-	err = db.MI.DB.Collection("users").FindOne(context.Background(), bson.D{{"_id", objectID}}).Decode(&user)
+	err = db.MI.DB.Collection("users").FindOne(context.Background(), bson.D{{Key: "_id", Value: objectID}}).Decode(&user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching user"})
 		return
