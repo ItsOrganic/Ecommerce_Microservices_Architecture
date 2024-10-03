@@ -41,7 +41,11 @@ func UpdateInventory(c *gin.Context) {
 		return
 	}
 	filter := bson.D{{Key: "name", Value: product.ProductName}}
-	update := bson.D{{Key: "$set", Value: bson.D{{Key: "quantity", Value: product.Quantity}}}}
+	update := bson.M{
+		"$set": bson.M{
+			"quantity": product.Quantity,
+		},
+	}
 	_, err := db.MI.DB.Collection("products").UpdateOne(context.TODO(), filter, update)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Error updating product"})

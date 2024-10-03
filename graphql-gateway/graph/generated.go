@@ -3626,7 +3626,7 @@ func (ec *executionContext) unmarshalInputOrderInput(ctx context.Context, obj in
 			if err != nil {
 				return it, err
 			}
-			it.ProductID = data
+			it.Name = data
 		case "quantity":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("quantity"))
 			data, err := ec.unmarshalNInt2int(ctx, v)

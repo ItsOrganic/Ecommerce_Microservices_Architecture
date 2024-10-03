@@ -15,7 +15,7 @@ WORKDIR /app
 
 COPY --from=builder /app/gpql-gateway .
 
-EXPOSE 8081
+EXPOSE 8080
 
 # Correct the CMD path:
 CMD ["./gpql-gateway"] 

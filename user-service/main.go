@@ -13,7 +13,7 @@ import (
 
 func main() {
 	var err error
-	err = db.Connect("mongodb://localhost:27017", "user-service", "users")
+	err = db.Connect("mongodb://mongodb:27017/user-service", "user-service", "users")
 	if err != nil {
 		log.Fatalf("Error connecting to database: %v", err)
 	}

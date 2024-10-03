@@ -13,7 +13,7 @@ type Order struct {
 }
 
 type OrderInput struct {
-	ProductID string `json:"product_id"`
+	Name string `json:"name"`
 	Quantity  int    `json:"quantity"`
 	Status    string `json:"status"`
 }

@@ -15,7 +15,7 @@ WORKDIR /app
 
 COPY --from=builder /app/product-service .
 
-EXPOSE 8081
+EXPOSE 8082
 
 # Correct the CMD path:
 CMD ["./product-service"] 

@@ -99,9 +99,9 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, input model.Produc
 // PlaceOrder is the resolver for the placeOrder field.
 func (r *mutationResolver) PlaceOrder(ctx context.Context, input model.OrderInput) (*model.Order, error) {
 	payload := map[string]interface{}{
-		"product_id": input.ProductID,
-		"quantity":   input.Quantity,
-		"status":     input.Status,
+		"name":     input.Name,
+		"quantity": input.Quantity,
+		"status":   input.Status,
 	}
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {

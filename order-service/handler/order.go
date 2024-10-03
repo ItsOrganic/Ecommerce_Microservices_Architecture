@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"order-service/db"
 	"order-service/model"
@@ -69,11 +70,15 @@ func CreateOrder(c *gin.Context) {
 	updatedQuantityURL := fmt.Sprintf("http://localhost:8082/product/%s", order.ProductName)
 
 	// Create the JSON payload for the inventory update
-	updatedQuantityJSON, err := json.Marshal(map[string]int{"quantity": updatedQuantity})
+	updatedQuantityJSON, err := json.Marshal(map[string]interface{}{
+		"product_name": order.ProductName,
+		"quantity":     updatedQuantity,
+	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("error marshaling updated quantity: %v", err)})
 		return
 	}
+	log.Print(updatedQuantityJSON)
 
 	// Create a new request to update the inventory
 	req, err := http.NewRequest(http.MethodPut, updatedQuantityURL, bytes.NewBuffer(updatedQuantityJSON))

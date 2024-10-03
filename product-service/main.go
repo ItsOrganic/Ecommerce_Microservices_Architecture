@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	err := db.Connect("mongodb://localhost:27017", "product-service", "products")
+	err := db.Connect("mongodb://mongodb:27017/product-service", "product-service", "products")
 	if err != nil {
 		log.Fatal("error connecting to the database: ", err)
 	}
