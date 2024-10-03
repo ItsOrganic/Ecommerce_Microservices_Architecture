@@ -29,9 +29,7 @@ func GenerateToken(email string, password string) (string, error) {
 
 // Claims defines the structure of the JWT claims
 type Claims struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-
+	Email string `json:"email"`
 	jwt.StandardClaims
 }
 

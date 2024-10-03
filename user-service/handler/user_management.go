@@ -70,6 +70,24 @@ func UpdateProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully"})
 }
 
+func GetProfile(c *gin.Context) {
+	userId := c.Param("id")
+	objectId, err := primitive.ObjectIDFromHex(userId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	var user bson.M
+	err = db.MI.DB.Collection("users").FindOne(context.TODO(), bson.M{"_id": objectId}).Decode(&user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
+}
+
 // hashPassword hashes the password using bcrypt
 func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
