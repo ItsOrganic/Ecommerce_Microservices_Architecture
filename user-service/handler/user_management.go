@@ -2,7 +2,7 @@ package handler
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"log"
 	"net/http"
 	"user-service/db"
@@ -65,8 +65,12 @@ func UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	utils.EmitEvents(fmt.Sprintf("user updated %s", update.Name))
-
+	userJson, _ := json.Marshal(update)
+	err = utils.EmitEvent("Profile Updated", string(userJson))
+	if err != nil {
+		log.Println("Error emitting event:", err)
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully"})
 }
 

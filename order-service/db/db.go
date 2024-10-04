@@ -16,7 +16,7 @@ type MongoInstance struct {
 
 var MI MongoInstance
 
-func Connect(uri, dbName, collectionName string) error {
+func Connect(uri string, dbName string, collectionName string) error {
 	// Create a new client with the connection options.
 	clientOpts := options.Client().ApplyURI(uri)
 

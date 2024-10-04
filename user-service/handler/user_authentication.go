@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"user-service/db"
 	"user-service/model"
@@ -44,6 +45,13 @@ func AuthenticateUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error generating token"})
 		return
 	}
+	userJson, _ := json.Marshal(user)
+	err = utils.EmitEvent("user authenticated", string(userJson))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error emitting event"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{"token": token, "message": "User authenticated"})
 
 }

@@ -13,7 +13,8 @@ import (
 
 func main() {
 	// Start the server
-	err := db.Connect("mongodb://mongodb:27017/order-service", "order-service", "orders")
+	var err error
+	err = db.Connect("mongodb://localhost:27017", "order-service", "orders")
 	if err != nil {
 		log.Fatalf("Error connecting to database: %v", err)
 	}
@@ -25,6 +26,7 @@ func main() {
 	router := gin.Default()
 	router.Use(middleware.PrometheusMiddleware())
 	router.GET("/metrics", metrics.PrometheusHandler)
+	router.GET("/orders", handler.GetOrders)
 	router.POST("/order", handler.CreateOrder)
 	router.GET("/order/:id", handler.GetOrder)
 	router.PUT("/order/:id", handler.UpdateStatus)

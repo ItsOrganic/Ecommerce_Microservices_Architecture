@@ -59,11 +59,13 @@ func CreateOrder(c *gin.Context) {
 	order.Price = product.Price // Use the product's price
 
 	// Save the new order to your MongoDB database
-	_, err = db.MI.Collection.InsertOne(context.TODO(), order)
+	insertResult, err := db.MI.DB.Collection("orders").InsertOne(context.TODO(), order)
 	if err != nil {
+		log.Printf("Error creating order: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("error creating order: %v", err)})
 		return
 	}
+	log.Printf("Inserted a single document: %v", insertResult.InsertedID)
 
 	// Step 4: Update the inventory in the product service
 	updatedQuantity := product.Quantity - order.Quantity // Calculate updated quantity
@@ -106,7 +108,9 @@ func CreateOrder(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update inventory"})
 		return
 	}
-	utils.EmitEvents(fmt.Sprintf(`{"product_name": "%s", "quantity": %d}`, order.ProductName, updatedQuantity))
+
+	utils.EmitEvents("order created")
+
 	// Return the created order response
 	c.JSON(http.StatusCreated, order)
 }
@@ -115,24 +119,21 @@ func CreateOrder(c *gin.Context) {
 func GetOrder(c *gin.Context) {
 	var order model.Order
 
-	// Extract the product name from the URL parameter
-	productName := c.Param("name")
-
-	// Create a filter to find the order by product name
-	filter := bson.M{"productName": productName}
-
-	// Fetch the order from the collection
-	err := db.MI.Collection.FindOne(context.TODO(), filter).Decode(&order)
+	// Find the order by product name
+	cursor, err := db.MI.DB.Collection("orders").Find(context.TODO(), bson.M{"productName": order.ProductName})
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "order not found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving order"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching order"})
 		return
 	}
+	defer cursor.Close(context.Background())
+	for cursor.Next(context.Background()) {
+		cursor.Decode(&order)
+	}
 
-	// Return the order if found
 	c.JSON(http.StatusOK, order)
 }
 
@@ -158,12 +159,30 @@ func UpdateStatus(c *gin.Context) {
 	update := bson.M{"$set": bson.M{"status": order.Status}}
 
 	// Update the order status
-	_, err := db.MI.Collection.UpdateOne(context.TODO(), filter, update)
+	_, err := db.MI.DB.Collection("orders").UpdateOne(context.TODO(), filter, update)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error updating order status"})
 		return
 	}
 
-	utils.EmitEvents(fmt.Sprintf(`{"product_name": "%s", "status": "%s"}`, productName, order.Status))
+	utils.EmitEvents("order status updated")
+
 	c.JSON(http.StatusOK, gin.H{"message": "Order status updated successfully"})
+}
+
+func GetOrders(c *gin.Context) {
+	// Find all orders
+	var orders []model.Order
+	cursor, err := db.MI.DB.Collection("orders").Find(context.Background(), bson.D{})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching orders"})
+		return
+	}
+	defer cursor.Close(context.Background())
+	for cursor.Next(context.Background()) {
+		var order model.Order
+		cursor.Decode(&order)
+		orders = append(orders, order)
+	}
+	c.JSON(http.StatusOK, orders)
 }

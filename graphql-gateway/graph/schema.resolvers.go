@@ -31,7 +31,7 @@ func (r *mutationResolver) RegisterUser(ctx context.Context, input model.Registe
 	}
 
 	// Send the POST request to the user service running on localhost:8081
-	resp, err := http.Post("http://localhost:8081/register", "application/json", bytes.NewBuffer(jsonPayload))
+	resp, err := http.Post("http://127.0.0.1:8081/register", "application/json", bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return nil, fmt.Errorf("error sending request to user service: %v", err)
 	}
@@ -74,7 +74,7 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, input model.Produc
 	if err != nil {
 		return nil, fmt.Errorf("error creating JSON payload: %v", err)
 	}
-	resp, err := http.Post("http://localhost:8082/product", "application/json", bytes.NewBuffer(jsonPayload))
+	resp, err := http.Post("http://127.0.0.1:8082/product", "application/json", bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return nil, fmt.Errorf("error sending request to product service: %v", err)
 	}
@@ -90,10 +90,16 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, input model.Produc
 	if err := json.NewDecoder(resp.Body).Decode(&product); err != nil {
 		return nil, fmt.Errorf("error decoding response: %v", err)
 	}
-	fmt.Print(fmt.Sprint(product))
+
+	// Ensure all fields are correctly populated
+	product.Name = input.Name
+	product.Description = input.Description
+	product.Price = input.Price
+	product.Quantity = input.Quantity
+	product.ID = input.ID
+
 	// Return the created product
 	return &product, nil
-
 }
 
 // PlaceOrder is the resolver for the placeOrder field.
@@ -107,7 +113,7 @@ func (r *mutationResolver) PlaceOrder(ctx context.Context, input model.OrderInpu
 	if err != nil {
 		return nil, fmt.Errorf("error creating JSON payload: %v", err)
 	}
-	resp, err := http.Post("http://localhost:8083/order", "application/json", bytes.NewBuffer(jsonPayload))
+	resp, err := http.Post("http://127.0.0.1:8083/order", "application/json", bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return nil, fmt.Errorf("error sending request to order service: %v", err)
 	}
@@ -125,7 +131,7 @@ func (r *mutationResolver) PlaceOrder(ctx context.Context, input model.OrderInpu
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	var users []*model.User // Directly decode into a slice of users
 
-	resp, err := http.Get("http://localhost:8081/users")
+	resp, err := http.Get("http://127.0.0.1:8081/users")
 	if err != nil {
 		return nil, fmt.Errorf("error sending request to user service: %v", err)
 	}
@@ -141,7 +147,7 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 // User is the resolver for the user field.
 func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
 	var user model.User
-	resp, err := http.Get(fmt.Sprintf("http://localhost:8081/user/%s", id))
+	resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:8081/user/%s", id))
 	if err != nil {
 		return nil, fmt.Errorf("error sending request to user service: %v", err)
 	}
@@ -157,7 +163,7 @@ func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error
 // Products is the resolver for the products field.
 func (r *queryResolver) Products(ctx context.Context) ([]*model.Product, error) {
 	var products []*model.Product
-	resp, err := http.Get("http://localhost:8082/products")
+	resp, err := http.Get("http://127.0.0.1:8082/products")
 	if err != nil {
 		return nil, fmt.Errorf("error sending request to product service: %v", err)
 	}
@@ -172,7 +178,7 @@ func (r *queryResolver) Products(ctx context.Context) ([]*model.Product, error) 
 // Product is the resolver for the product field.
 func (r *queryResolver) Product(ctx context.Context, id string) (*model.Product, error) {
 	var product model.Product
-	resp, err := http.Get(fmt.Sprintf("http://localhost:8082/product/%s", id))
+	resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:8082/product/%s", id))
 	if err != nil {
 		return nil, fmt.Errorf("error sending request to product service: %v", err)
 	}
@@ -186,12 +192,32 @@ func (r *queryResolver) Product(ctx context.Context, id string) (*model.Product,
 
 // Orders is the resolver for the orders field.
 func (r *queryResolver) Orders(ctx context.Context) ([]*model.Order, error) {
-	panic(fmt.Errorf("not implemented: Orders - orders"))
+	var orders []*model.Order
+	resp, err := http.Get("http://localhost:8083/orders")
+	if err != nil {
+		return nil, fmt.Errorf("error sending request to order service: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if err := json.NewDecoder(resp.Body).Decode(&orders); err != nil {
+		return nil, fmt.Errorf("error decoding response: %v", err)
+	}
+	return orders, nil
 }
 
 // Order is the resolver for the order field.
 func (r *queryResolver) Order(ctx context.Context, id string) (*model.Order, error) {
-	panic(fmt.Errorf("not implemented: Order - order"))
+	var order model.Order
+	resp, err := http.Get(fmt.Sprintf("http://localhost:8083/order/%s", id))
+	if err != nil {
+		return nil, fmt.Errorf("error sending request to order service: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if err := json.NewDecoder(resp.Body).Decode(&order); err != nil {
+		return nil, fmt.Errorf("error decoding response: %v", err)
+	}
+	return &order, nil
 }
 
 // Mutation returns MutationResolver implementation.

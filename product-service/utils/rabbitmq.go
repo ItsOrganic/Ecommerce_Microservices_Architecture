@@ -27,19 +27,19 @@ func EmitEvents(event string) {
 	defer ch.Close()
 
 	_ = ch.ExchangeDeclare(
-		"product_service", // name
-		"fanout",          // type
-		true,              // durable
-		false,             // auto-deleted
-		false,             // internal
-		false,             // no-wait
-		nil,               // arguments
+		"user_service", // name
+		"fanout",       // type
+		true,           // durable
+		false,          // auto-deleted
+		false,          // internal
+		false,          // no-wait
+		nil,            // arguments
 	)
 	if err = ch.Publish(
-		"product_service", // exchange
-		"",                // routing key
-		false,             // mandatory
-		false,             // immediate
+		"user_service", // exchange
+		"",             // routing key
+		false,          // mandatory
+		false,          // immediate
 		amqp.Publishing{
 			ContentType: "application/json",
 			Body:        []byte(event),

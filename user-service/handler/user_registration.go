@@ -2,7 +2,7 @@ package handler
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"net/http"
 	"user-service/db"
 	"user-service/model"
@@ -29,7 +29,9 @@ func RegisterUser(c *gin.Context) {
 		return
 	}
 	user.Password = hashedPassword
-	user.ID = primitive.NewObjectID()
+	if len(user.ID) == 0 {
+		user.ID = primitive.NewObjectID()
+	}
 
 	//check if user already exists
 	indexModel := mongo.IndexModel{
@@ -44,7 +46,12 @@ func RegisterUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "User already exists"})
 		return
 	}
-	utils.EmitEvents(fmt.Sprintf("user_registered %s", user))
+	userJson, _ := json.Marshal(user)
+	err = utils.EmitEvent("user", string(userJson))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error emitting event"})
+		return
+	}
 	c.JSON(http.StatusOK, user)
 }
 

@@ -13,12 +13,14 @@ import (
 
 func main() {
 	var err error
-	err = db.Connect("mongodb://mongodb:27017/user-service", "user-service", "users")
+	err = db.Connect("mongodb://localhost:27017", "user-service", "users")
 	if err != nil {
 		log.Fatalf("Error connecting to database: %v", err)
 	}
-	utils.InitMQ()
-	metrics.Init()
+	err = utils.InitMQ("amqp://guest:guest@localhost:5672/")
+	if err != nil {
+		log.Fatalf("Error connecting to RabbitMQ: %v", err)
+	}
 	defer utils.CloseMQ()
 
 	router := gin.Default()

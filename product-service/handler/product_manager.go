@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"product-service/db"
 	"product-service/model"
 	"product-service/utils"
@@ -30,7 +29,8 @@ func CreateProduct(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "Error creating product/ Product already exists"})
 		return
 	}
-	utils.EmitEvents(fmt.Sprintf("product_created %s", product.ProductName))
+
+	utils.EmitEvents("product_created")
 	c.JSON(200, gin.H{"message": "Product created successfully", "data": product})
 }
 
@@ -51,7 +51,9 @@ func UpdateInventory(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "Error updating product"})
 		return
 	}
-	utils.EmitEvents(fmt.Sprintf("Inventory Updated %s", product.ProductName))
+
+	utils.EmitEvents("inventory_updated")
+
 	c.JSON(200, gin.H{"message": "Inventory updated successfully"})
 }
 
@@ -73,7 +75,8 @@ func DeleteProduct(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "Error deleting product"})
 		return
 	}
-	utils.EmitEvents(fmt.Sprintf("Product Deleted %s", productName))
+	utils.EmitEvents("product_deleted")
+
 	c.JSON(200, gin.H{"message": "Product deleted successfully"})
 }
 
