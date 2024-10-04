@@ -6,84 +6,46 @@ import (
 	"github.com/streadway/amqp"
 )
 
-var MQConnection *amqp.Connection
-var MQChannel *amqp.Channel
+var conn *amqp.Connection
 
-// InitMQ initializes the RabbitMQ connection and channel
-func InitMQ() error {
+func InitMQ() {
 	var err error
-	MQConnection, err = amqp.Dial("amqp://guest:guest@localhost:5672/")
+	conn, err = amqp.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil {
-		return err
+		panic(err)
 	}
-	MQChannel, err = MQConnection.Channel()
-	if err != nil {
-		return err
-	}
-	log.Println("RabbitMQ connection and channel initialized")
-
-	// Declare the exchange and queue
-	err = MQChannel.ExchangeDeclare(
-		"order_exchange", // name
-		"fanout",         // type
-		true,             // durable
-		false,            // auto-deleted
-		false,            // internal
-		false,            // no-wait
-		nil,              // arguments
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = MQChannel.QueueDeclare(
-		"order_queue", // name
-		true,          // durable
-		false,         // delete when unused
-		false,         // exclusive
-		false,         // no-wait
-		nil,           // arguments
-	)
-	if err != nil {
-		return err
-	}
-
-	err = MQChannel.QueueBind(
-		"order_queue",    // queue name
-		"",               // routing key
-		"order_exchange", // exchange
-		false,
-		nil,
-	)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
-
-// CloseMQ closes the RabbitMQ connection and channel
 func CloseMQ() {
-	if MQChannel != nil {
-		MQChannel.Close()
-	}
-	if MQConnection != nil {
-		MQConnection.Close()
-	}
-	log.Println("RabbitMQ connection and channel closed")
+	conn.Close()
 }
 
-// EmitEvent publishes an event to the specified RabbitMQ exchange
-func EmitEvent(exchangeName, event string) error {
-	err := MQChannel.Publish(
-		exchangeName, // exchange
-		"",           // routing key
-		false,        // mandatory
-		false,        // immediate
+func EmitEvents(event string) {
+	ch, err := conn.Channel()
+	if err != nil {
+		panic(err)
+	}
+	defer ch.Close()
+
+	_ = ch.ExchangeDeclare(
+		"user_service", // name
+		"fanout",       // type
+		true,           // durable
+		false,          // auto-deleted
+		false,          // internal
+		false,          // no-wait
+		nil,            // arguments
+	)
+	if err = ch.Publish(
+		"user_service", // exchange
+		"",             // routing key
+		false,          // mandatory
+		false,          // immediate
 		amqp.Publishing{
 			ContentType: "application/json",
 			Body:        []byte(event),
 		},
-	)
-	return err
+	); err != nil {
+		panic(err)
+	}
+	log.Printf("sent event %s", event)
 }

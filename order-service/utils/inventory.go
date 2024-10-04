@@ -37,5 +37,7 @@ func UpdateProductInventory(productName string, quantity int) error {
 		return fmt.Errorf("received non-OK response: %s", resp.Status)
 	}
 
+	EmitEvents(fmt.Sprintf("updated inventory for product %s", productName))
+
 	return nil
 }

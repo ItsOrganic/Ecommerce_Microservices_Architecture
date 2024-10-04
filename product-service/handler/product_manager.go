@@ -34,7 +34,7 @@ func CreateProduct(c *gin.Context) {
 		return
 	}
 
-	_ = utils.EmitEvent("product_created", string(product.ProductName))
+	utils.EmitEvents("Product Created")
 
 	c.JSON(200, gin.H{"message": "Product created successfully", "data": product})
 }
@@ -66,7 +66,7 @@ func UpdateProduct(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
 		return
 	}
-	_ = utils.EmitEvent("product_updated", " ")
+	utils.EmitEvents("product_updated")
 
 	c.JSON(http.StatusOK, gin.H{"message": "product inventory updated"})
 }
@@ -89,7 +89,7 @@ func DeleteProduct(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "Error deleting product"})
 		return
 	}
-	_ = utils.EmitEvent("product_deleted", "Product deleted")
+	utils.EmitEvents("Product Deleted")
 
 	c.JSON(200, gin.H{"message": "Product deleted successfully"})
 }

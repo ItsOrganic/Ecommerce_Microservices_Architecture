@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"order-service/db"
 	"order-service/model"
-	"order-service/utils"
+	"order-service/utils" // Ensure this path is correct relative to your project structure
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -70,10 +70,10 @@ func CreateOrder(c *gin.Context) {
 	}
 	eventJSON, err := json.Marshal(event)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("error marshaling event: %v", err)})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("error marshaling event: %v", eventJSON)})
 		return
 	}
-	err = utils.EmitEvent("order_exchange", string(eventJSON))
+	utils.EmitEvents("Order Created")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("error emitting event: %v", err)})
 		return
@@ -86,6 +86,8 @@ func CreateOrder(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("error updating product inventory: %v", err)})
 		return
 	}
+
+	utils.EmitEvents("Order_created")
 
 	// Return the created order response
 	c.JSON(http.StatusCreated, order)
@@ -141,7 +143,7 @@ func UpdateStatus(c *gin.Context) {
 		return
 	}
 
-	_ = utils.EmitEvent("order_exchange", "Order status updated")
+	utils.EmitEvents("order_exchange")
 
 	c.JSON(http.StatusOK, gin.H{"message": "Order status updated successfully"})
 }
