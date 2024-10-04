@@ -29,7 +29,7 @@ func main() {
 	router.POST("/product", handler.CreateProduct)
 	router.GET("/product/:name", handler.GetProduct)
 	router.GET("/products", handler.GetProducts)
-	router.PUT("/product/:name", handler.UpdateInventory)
+	router.PUT("/product/:name", handler.UpdateProduct)
 	router.DELETE("/product/:name", handler.DeleteProduct)
 	router.Run(":8082")
 }

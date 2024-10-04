@@ -1,11 +1,9 @@
 package handler
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"order-service/db"
@@ -21,7 +19,6 @@ import (
 // CreateOrder handles the creation of a new order
 func CreateOrder(c *gin.Context) {
 	var order model.Order
-
 	// Bind JSON data to order struct
 	if err := c.BindJSON(&order); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -35,20 +32,19 @@ func CreateOrder(c *gin.Context) {
 		return
 	}
 	defer productResp.Body.Close()
-
 	if productResp.StatusCode != http.StatusOK {
 		c.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
 		return
 	}
 
-	// Step 2: Decode the product details
+	// Decode the product details
 	var product model.Product
 	if err := json.NewDecoder(productResp.Body).Decode(&product); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("error decoding product response: %v", err)})
 		return
 	}
 
-	// Step 3: Check if enough inventory is available
+	// Check if enough inventory is available
 	if product.Quantity < order.Quantity {
 		c.JSON(http.StatusConflict, gin.H{"error": "insufficient inventory"})
 		return
@@ -67,49 +63,29 @@ func CreateOrder(c *gin.Context) {
 	}
 	log.Printf("Inserted a single document: %v", insertResult.InsertedID)
 
-	// Step 4: Update the inventory in the product service
-	updatedQuantity := product.Quantity - order.Quantity // Calculate updated quantity
-	updatedQuantityURL := fmt.Sprintf("http://localhost:8082/product/%s", order.ProductName)
-
-	// Create the JSON payload for the inventory update
-	updatedQuantityJSON, err := json.Marshal(map[string]interface{}{
+	// Emit an event to RabbitMQ
+	event := map[string]interface{}{
 		"product_name": order.ProductName,
-		"quantity":     updatedQuantity,
-	})
+		"quantity":     order.Quantity,
+	}
+	eventJSON, err := json.Marshal(event)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("error marshaling updated quantity: %v", err)})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("error marshaling event: %v", err)})
 		return
 	}
-	log.Print(updatedQuantityJSON)
-
-	// Create a new request to update the inventory
-	req, err := http.NewRequest(http.MethodPut, updatedQuantityURL, bytes.NewBuffer(updatedQuantityJSON))
+	err = utils.EmitEvent("order_exchange", string(eventJSON))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("error creating request to update inventory: %v", err)})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("error emitting event: %v", err)})
 		return
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	// Update the product inventory
+	err = utils.UpdateProductInventory(order.ProductName, -order.Quantity)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("error updating inventory: %v", err)})
+		log.Printf("Error updating product inventory: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("error updating product inventory: %v", err)})
 		return
 	}
-	defer resp.Body.Close()
-
-	// Log the status code for debugging
-	fmt.Printf("Inventory Update Response Status: %s\n", resp.Status)
-
-	if resp.StatusCode != http.StatusOK {
-		// Read the response body for more details
-		body, _ := io.ReadAll(resp.Body)
-		fmt.Printf("Error updating inventory: %s\n", body)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update inventory"})
-		return
-	}
-
-	utils.EmitEvents("order created")
 
 	// Return the created order response
 	c.JSON(http.StatusCreated, order)
@@ -165,7 +141,7 @@ func UpdateStatus(c *gin.Context) {
 		return
 	}
 
-	utils.EmitEvents("order status updated")
+	_ = utils.EmitEvent("order_exchange", "Order status updated")
 
 	c.JSON(http.StatusOK, gin.H{"message": "Order status updated successfully"})
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"net/http"
 	"product-service/db"
 	"product-service/model"
 	"product-service/utils"
@@ -33,31 +34,41 @@ func CreateProduct(c *gin.Context) {
 		return
 	}
 
-	utils.EmitEvents("product_created")
+	_ = utils.EmitEvent("product_created", string(product.ProductName))
+
 	c.JSON(200, gin.H{"message": "Product created successfully", "data": product})
 }
 
-func UpdateInventory(c *gin.Context) {
-	var product model.Product
-	if err := c.ShouldBindJSON(&product); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+func UpdateProduct(c *gin.Context) {
+	productName := c.Param("name")
+	var updateData struct {
+		Quantity int `json:"quantity"`
+	}
+	if err := c.BindJSON(&updateData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	filter := bson.D{{Key: "name", Value: product.ProductName}}
-	update := bson.M{
-		"$set": bson.M{
-			"quantity": product.Quantity,
-		},
-	}
-	_, err := db.MI.DB.Collection("products").UpdateOne(context.TODO(), filter, update)
+
+	filter := bson.M{"name": productName}
+	update := bson.M{"$inc": bson.M{"quantity": updateData.Quantity}}
+
+	result, err := db.MI.DB.Collection("products").UpdateOne(context.TODO(), filter, update)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Error updating product"})
+		if err == mongo.ErrNoDocuments {
+			c.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	utils.EmitEvents("inventory_updated")
+	if result.MatchedCount == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
+		return
+	}
+	_ = utils.EmitEvent("product_updated", " ")
 
-	c.JSON(200, gin.H{"message": "Inventory updated successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "product inventory updated"})
 }
 
 func DeleteProduct(c *gin.Context) {
@@ -78,7 +89,7 @@ func DeleteProduct(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "Error deleting product"})
 		return
 	}
-	utils.EmitEvents("product_deleted")
+	_ = utils.EmitEvent("product_deleted", "Product deleted")
 
 	c.JSON(200, gin.H{"message": "Product deleted successfully"})
 }
