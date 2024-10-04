@@ -1,37 +1,18 @@
+# User Service Schema
 type User {
     id: ID!
     name: String!
     email: String!
-}
-
-type Product {
-    id: ID!
-    name: String!
-    description: String
-    price: Float!
-    quantity: Int!
-}
-
-type Order {
-    id: ID!
-    product_id: ID!
-    quantity: Int!
-    status: String!
+    password: String!
 }
 
 type Query {
     users: [User!]!
-    user(id: ID!): User
-    products: [Product!]!
-    product(id: ID!): Product
-    orders: [Order!]!
-    order(id: ID!): Order
+    user(name: String!): User
 }
 
 type Mutation {
     registerUser(input: RegisterInput!): User!
-    createProduct(input: ProductInput!): Product!
-    placeOrder(input: OrderInput!): Order!
 }
 
 input RegisterInput {
@@ -40,11 +21,49 @@ input RegisterInput {
     password: String!
 }
 
+# Product Service Schema
+type Product {
+    id: ID!
+    name: String!
+    description: String
+    price: Float!
+    quantity: Int!
+}
+
+extend type Query {
+    products: [Product!]!
+    product(id: ID!): Product
+}
+
+extend type Mutation {
+    createProduct(input: ProductInput!): Product!
+    updateProduct(id: ID!, input: ProductInput!): Product!
+    deleteProduct(id: ID!): Boolean!
+}
+
 input ProductInput {
     name: String!
     description: String
     price: Float!
     quantity: Int!
+}
+
+# Order Service Schema
+type Order {
+    id: ID!
+    product_id: ID!
+    quantity: Int!
+    status: String!
+}
+
+extend type Query {
+    orders: [Order!]!
+    order(id: ID!): Order
+}
+
+extend type Mutation {
+    placeOrder(input: OrderInput!): Order!
+    updateOrderStatus(id: ID!, status: String!): Order!
 }
 
 input OrderInput {

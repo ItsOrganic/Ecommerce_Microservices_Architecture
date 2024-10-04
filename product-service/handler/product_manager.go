@@ -7,6 +7,7 @@ import (
 	"product-service/db"
 	"product-service/model"
 	"product-service/utils"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -112,7 +113,7 @@ func GetProducts(c *gin.Context) {
 	// Store result in Redis cache
 	data, err := json.Marshal(products)
 	if err == nil {
-		err = utils.RDB.Set(context.Background(), "products", data, 0).Err()
+		err = utils.RDB.Set(context.Background(), "products", data, 5*time.Minute).Err()
 		if err != nil {
 			log.Printf("Error setting cache: %v", err)
 		}

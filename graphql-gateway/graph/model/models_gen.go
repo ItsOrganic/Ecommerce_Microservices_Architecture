@@ -13,7 +13,7 @@ type Order struct {
 }
 
 type OrderInput struct {
-	Name string `json:"name"`
+	ProductID string `json:"product_id"`
 	Quantity  int    `json:"quantity"`
 	Status    string `json:"status"`
 }
@@ -27,7 +27,6 @@ type Product struct {
 }
 
 type ProductInput struct {
-	ID 		string  `json:"id"`
 	Name        string  `json:"name"`
 	Description *string `json:"description,omitempty"`
 	Price       float64 `json:"price"`
@@ -44,8 +43,8 @@ type RegisterInput struct {
 }
 
 type User struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
 	Password string `json:"password"`
 }
