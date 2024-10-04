@@ -19,6 +19,7 @@ func main() {
 	}
 
 	metrics.Init()
+	utils.InitRedis()
 	utils.InitMQ()
 	defer utils.CloseMQ()
 

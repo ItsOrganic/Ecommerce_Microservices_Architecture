@@ -21,6 +21,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error connecting to RabbitMQ: %v", err)
 	}
+	metrics.Init()
+	utils.InitRedis()
 	defer utils.CloseMQ()
 
 	router := gin.Default()
@@ -29,8 +31,7 @@ func main() {
 	router.POST("/register", handler.RegisterUser)
 	router.POST("/login", handler.AuthenticateUser)
 	router.GET("/users", handler.GetUsers)
-	router.GET("/user/:id", handler.GetUser)
-	router.GET("/profile/:id", handler.GetProfile)
+	router.GET("/user/:email", handler.GetUser)
 	router.PUT("/profile/:id", handler.UpdateProfile)
 	router.Run(":8081")
 

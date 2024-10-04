@@ -2,6 +2,8 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
+	"log"
 	"product-service/db"
 	"product-service/model"
 	"product-service/utils"
@@ -82,6 +84,19 @@ func DeleteProduct(c *gin.Context) {
 
 func GetProducts(c *gin.Context) {
 	var products []model.Product
+
+	// Check Redis cache first
+	val, err := utils.RDB.Get(context.Background(), "products").Result()
+	if err == nil {
+		// Cache hit
+		log.Println("Cache hit")
+		if err := json.Unmarshal([]byte(val), &products); err == nil {
+			c.JSON(200, products)
+			return
+		}
+	}
+
+	// Cache miss, query the database
 	cursor, err := db.MI.DB.Collection("products").Find(context.Background(), bson.D{})
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Error fetching products"})
@@ -93,6 +108,16 @@ func GetProducts(c *gin.Context) {
 		cursor.Decode(&product)
 		products = append(products, product)
 	}
+
+	// Store result in Redis cache
+	data, err := json.Marshal(products)
+	if err == nil {
+		err = utils.RDB.Set(context.Background(), "products", data, 0).Err()
+		if err != nil {
+			log.Printf("Error setting cache: %v", err)
+		}
+	}
+
 	c.JSON(200, products)
 }
 

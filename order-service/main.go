@@ -19,7 +19,7 @@ func main() {
 		log.Fatalf("Error connecting to database: %v", err)
 	}
 	metrics.Init()
-
+	utils.InitRedis()
 	utils.InitMQ()
 	defer utils.CloseMQ()
 

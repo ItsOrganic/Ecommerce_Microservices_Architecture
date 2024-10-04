@@ -3,7 +3,9 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
+	"net/mail"
 	"user-service/db"
 	"user-service/model"
 	"user-service/utils"
@@ -52,6 +54,7 @@ func RegisterUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error emitting event"})
 		return
 	}
+	utils.EmitEvent("User Created ", string(userJson))
 	c.JSON(http.StatusOK, user)
 }
 
@@ -66,9 +69,22 @@ func HashPassword(password string) (string, error) {
 
 func GetUsers(c *gin.Context) {
 	var users []model.User
+
+	// Check Redis cache first
+	val, err := utils.RDB.Get(context.Background(), "users").Result()
+	if err == nil {
+		// Cache hit
+		log.Println("Cache hit")
+		if err := json.Unmarshal([]byte(val), &users); err == nil {
+			c.JSON(200, users)
+			return
+		}
+	}
+
+	// Cache miss, query the database
 	cursor, err := db.MI.DB.Collection("users").Find(context.Background(), bson.D{})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching users"})
+		c.JSON(500, gin.H{"error": "Error fetching users"})
 		return
 	}
 	defer cursor.Close(context.Background())
@@ -77,20 +93,29 @@ func GetUsers(c *gin.Context) {
 		cursor.Decode(&user)
 		users = append(users, user)
 	}
-	c.JSON(http.StatusOK, users)
+
+	// Store result in Redis cache
+	data, err := json.Marshal(users)
+	if err == nil {
+		err = utils.RDB.Set(context.Background(), "users", data, 0).Err()
+		if err != nil {
+			log.Printf("Error setting cache: %v", err)
+		}
+	}
+
+	c.JSON(200, users)
 }
 
 func GetUser(c *gin.Context) {
 	var user model.User
-	id := c.Param("id")
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+	mailUser := c.Param("email")
+	if _, err := mail.ParseAddress(mailUser); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email"})
 		return
 	}
-	err = db.MI.DB.Collection("users").FindOne(context.Background(), bson.D{{Key: "_id", Value: objectID}}).Decode(&user)
+	err := db.MI.DB.Collection("users").FindOne(context.TODO(), bson.M{"email": mailUser}).Decode(&user)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching user"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting user"})
 		return
 	}
 	c.JSON(http.StatusOK, user)

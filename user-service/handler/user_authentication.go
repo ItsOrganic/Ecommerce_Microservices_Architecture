@@ -52,6 +52,7 @@ func AuthenticateUser(c *gin.Context) {
 		return
 	}
 
+	utils.EmitEvent("User authenticated", string(userJson))
 	c.JSON(http.StatusOK, gin.H{"token": token, "message": "User authenticated"})
 
 }

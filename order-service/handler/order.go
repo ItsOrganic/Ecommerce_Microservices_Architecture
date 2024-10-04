@@ -171,11 +171,23 @@ func UpdateStatus(c *gin.Context) {
 }
 
 func GetOrders(c *gin.Context) {
-	// Find all orders
 	var orders []model.Order
+
+	// Check Redis cache first
+	val, err := utils.RDB.Get(context.Background(), "orders").Result()
+	if err == nil {
+		// Cache hit
+		log.Println("Cache hit")
+		if err := json.Unmarshal([]byte(val), &orders); err == nil {
+			c.JSON(200, orders)
+			return
+		}
+	}
+
+	// Cache miss, query the database
 	cursor, err := db.MI.DB.Collection("orders").Find(context.Background(), bson.D{})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching orders"})
+		c.JSON(500, gin.H{"error": "Error fetching orders"})
 		return
 	}
 	defer cursor.Close(context.Background())
@@ -184,5 +196,15 @@ func GetOrders(c *gin.Context) {
 		cursor.Decode(&order)
 		orders = append(orders, order)
 	}
-	c.JSON(http.StatusOK, orders)
+
+	// Store result in Redis cache
+	data, err := json.Marshal(orders)
+	if err == nil {
+		err = utils.RDB.Set(context.Background(), "orders", data, 0).Err()
+		if err != nil {
+			log.Printf("Error setting cache: %v", err)
+		}
+	}
+
+	c.JSON(200, orders)
 }
