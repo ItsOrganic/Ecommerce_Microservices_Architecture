@@ -1,3 +1,4 @@
+# register user
 mutation {
     registerUser(input: {
         name: "name",
@@ -9,10 +10,74 @@ mutation {
         email
     }
 }
-
+# Get all the users
 query {
     users {
         name
         email
+    }
+}
+
+# Get single user by email 
+query {
+    user(name: "test@test.com") {
+        name
+        email
+        password
+    }
+}
+
+# Create a product 
+mutation {
+    createProduct(input: {
+        name: "postman",
+        quantity: 50,
+        price: 100
+    }){
+        id
+        name
+        quantity
+        price
+    }
+}
+
+# Get all the products
+query {
+    products {
+        id
+        name
+        quantity
+        description
+        price
+    }
+}
+
+# Get a single product by name
+query {
+    product(id: "postman"){
+        id
+        name
+        price
+        quantity
+    }
+}
+
+# Place Order 
+mutation {
+    placeOrder(input: {
+        name: "postman",
+        quantity: 20,
+        status: "pending",
+    }) {
+        name
+        quantity
+    }
+}
+
+# Check the Updated inventory/quantity left
+query {
+    products {
+        name
+        quantity
     }
 }
