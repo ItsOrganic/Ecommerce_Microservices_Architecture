@@ -17,8 +17,12 @@
 - **User Service**: Should be running on [http://localhost:8081](http://localhost:8081).
 - **Product Service**: Should be running on [http://localhost:8082](http://localhost:8082).
 - **Order Service**: Should be running on [http://localhost:8083](http://localhost:8083).
-- **GraphQL Gateway**: Should be running on [http://localhost:8080](http://localhost:8080).
+- **GraphQL Gateway**: Should be running on [http://localhost:8080/query](http://localhost:8080/query).
+- **RabbitMQ Service**: Should be running on [http://localhost:15672](http://localhost:15672).
 
+# POSTMAN WORKSPACE 
+
+## [https://www.postman.com/itsorganic/assignment/collection/66ff293b3d6feb3fae738e7d/graphql-queries-and-mutations?action=share&creator=28479580](https://www.postman.com/itsorganic/assignment/collection/66ff293b3d6feb3fae738e7d/graphql-queries-and-mutations?action=share&creator=28479580))
 ---
 
 

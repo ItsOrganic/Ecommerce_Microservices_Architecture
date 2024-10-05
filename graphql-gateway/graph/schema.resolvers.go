@@ -10,8 +10,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"gpql-gateway/graph/model"
+	"gpql-gateway/graph/utils"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 )
@@ -47,10 +47,9 @@ func (r *mutationResolver) RegisterUser(ctx context.Context, input model.Registe
 	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
 		return nil, fmt.Errorf("error decoding response: %v", err)
 	}
-
+	utils.EmitEvents("User Registered")
 	// Return the created user
 	return &user, nil
-
 }
 
 // CreateProduct is the resolver for the createProduct field.
@@ -95,7 +94,7 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, input model.Produc
 	if err := json.Unmarshal(body, &response); err != nil {
 		return nil, fmt.Errorf("error decoding response from product service: %v", err)
 	}
-
+	utils.EmitEvents("Product Created")
 	return &response.Data, nil
 }
 
@@ -142,6 +141,9 @@ func (r *mutationResolver) UpdateProduct(ctx context.Context, id string, input m
 		return nil, fmt.Errorf("error decoding response from product service: %v", err)
 	}
 
+	utils.EmitEvents("Product Updated")
+
+	// Return the updated product
 	return &product, nil
 }
 
@@ -164,20 +166,17 @@ func (r *mutationResolver) DeleteProduct(ctx context.Context, id string) (bool, 
 	if resp.StatusCode != http.StatusOK {
 		return false, fmt.Errorf("error deleting product: %v", resp.Status)
 	}
-
+	utils.EmitEvents("Product Deleted")
 	// Return true if the product was deleted
 	return true, nil
 }
 
 // PlaceOrder is the resolver for the placeOrder field.
 func (r *mutationResolver) PlaceOrder(ctx context.Context, input model.OrderInput) (*model.Order, error) {
-	payload := map[string]interface{}{
-		"product_id": input.ProductID,
-		"quantity":   input.Quantity,
-		"status":     input.Status,
-	}
-	// Fetch the product details from the product service
-	productResp, err := http.Get(fmt.Sprintf("http://localhost:8082/products/%s", input.ProductID))
+	productURL := fmt.Sprintf("http://localhost:8082/product/%s", input.Name)
+	log.Printf("Fetching product details from URL: %s", productURL)
+
+	productResp, err := http.Get(productURL)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching product details: %v", err)
 	}
@@ -185,110 +184,51 @@ func (r *mutationResolver) PlaceOrder(ctx context.Context, input model.OrderInpu
 
 	// Check the response status
 	if productResp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error fetching product details: %v", productResp.Status)
+		body, _ := io.ReadAll(productResp.Body)
+		return nil, fmt.Errorf("error fetching product details: %s, %s", productResp.Status, string(body))
 	}
 
 	// Decode the response into the Product model
 	var product model.Product
 	if err := json.NewDecoder(productResp.Body).Decode(&product); err != nil {
-		return nil, fmt.Errorf("error decoding product response: %v", err)
+		return nil, fmt.Errorf("error decoding product details: %v", err)
 	}
 
-	// Check if the product has enough quantity
-	if product.Quantity < input.Quantity {
-		return nil, fmt.Errorf("not enough quantity for product: %s", input.ProductID)
+	// Create the order in the order service
+	order := &model.Order{
+		Name:     product.Name,
+		Quantity: input.Quantity,
+		Status:   input.Status,
 	}
 
-	// Update the product quantity
-	product.Quantity -= input.Quantity
-
-	// Marshal the updated product to JSON
-	updatedProductPayload, err := json.Marshal(product)
+	orderJSON, err := json.Marshal(order)
 	if err != nil {
-		return nil, fmt.Errorf("error creating JSON payload for updated product: %v", err)
+		return nil, fmt.Errorf("error marshaling order: %v", err)
 	}
 
-	// Create a new PUT request to update the product quantity
-	updateReq, err := http.NewRequest(http.MethodPut, fmt.Sprintf("http://localhost:8082/products/%s", input.ProductID), bytes.NewBuffer(updatedProductPayload))
+	resp, err := http.Post("http://localhost:8083/order", "application/json", bytes.NewBuffer(orderJSON))
 	if err != nil {
-		return nil, fmt.Errorf("error creating request to update product: %v", err)
-	}
-
-	// Send the request
-	updateResp, err := http.DefaultClient.Do(updateReq)
-	if err != nil {
-		return nil, fmt.Errorf("error sending request to update product: %v", err)
-	}
-	defer updateResp.Body.Close()
-
-	// Check the response status
-	if updateResp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error updating product: %v", updateResp.Status)
-	}
-	// Marshal the payload to JSON
-	jsonPayload, err := json.Marshal(payload)
-	if err != nil {
-		return nil, fmt.Errorf("error creating JSON payload: %v", err)
-	}
-
-	// Send the POST request to the order service running on localhost:8083
-	resp, err := http.Post("http://localhost:8083/order", "application/json", bytes.NewBuffer(jsonPayload))
-	if err != nil {
-		return nil, fmt.Errorf("error sending request to order service: %v", err)
+		return nil, fmt.Errorf("error creating order: %v", err)
 	}
 	defer resp.Body.Close()
 
-	// Check the response status
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error placing order: %v", resp.Status)
+	if resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("error creating order: %s", string(body))
 	}
 
-	// Decode the response into the Order model
-	var order model.Order
-	if err := json.NewDecoder(resp.Body).Decode(&order); err != nil {
+	var createdOrder model.Order
+	if err := json.NewDecoder(resp.Body).Decode(&createdOrder); err != nil {
 		return nil, fmt.Errorf("error decoding response: %v", err)
 	}
+	utils.EmitEvents("Order Placed")
 
-	// Return the created order
-	return &order, nil
+	return &createdOrder, nil
 }
 
 // UpdateOrderStatus is the resolver for the updateOrderStatus field.
 func (r *mutationResolver) UpdateOrderStatus(ctx context.Context, id string, status string) (*model.Order, error) {
-	payload := map[string]string{"status": status}
-
-	// Marshal the payload to JSON
-	jsonPayload, err := json.Marshal(payload)
-	if err != nil {
-		return nil, fmt.Errorf("error creating JSON payload: %v", err)
-	}
-
-	// Create a new PUT request to the order service running on localhost:8083
-	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("http://localhost:8083/order/%s", id), bytes.NewBuffer(jsonPayload))
-	if err != nil {
-		return nil, fmt.Errorf("error creating request: %v", err)
-	}
-
-	// Send the request
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("error sending request to order service: %v", err)
-	}
-	defer resp.Body.Close()
-
-	// Check the response status
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error updating order: %v", resp.Status)
-	}
-
-	// Decode the response into the Order model
-	var order model.Order
-	if err := json.NewDecoder(resp.Body).Decode(&order); err != nil {
-		return nil, fmt.Errorf("error decoding response: %v", err)
-	}
-
-	// Return the updated order
-	return &order, nil
+	panic(fmt.Errorf("not implemented"))
 }
 
 // Users is the resolver for the users field.
@@ -310,8 +250,9 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	if err := json.NewDecoder(resp.Body).Decode(&users); err != nil {
 		return nil, fmt.Errorf("error decoding response: %v", err)
 	}
-
+	// users.ID = primitive.NewObjectID() // Removed because users is a slice of pointers to model.User
 	// Return the list of users
+	utils.EmitEvents("Status Updated")
 	return users, nil
 }
 
@@ -340,7 +281,6 @@ func (r *queryResolver) User(ctx context.Context, name string) (*model.User, err
 }
 
 // Products is the resolver for the products field.
-
 func (r *queryResolver) Products(ctx context.Context) ([]*model.Product, error) {
 	// Send the GET request to the product service running on localhost:8082
 	resp, err := http.Get("http://localhost:8082/products")
@@ -351,7 +291,7 @@ func (r *queryResolver) Products(ctx context.Context) ([]*model.Product, error) 
 
 	// Check the response status
 	if resp.StatusCode != http.StatusOK {
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		log.Printf("Received non-OK response: %v, body: %s", resp.Status, string(body))
 		return nil, fmt.Errorf("received non-OK response from product service: %v", resp.Status)
 	}
@@ -391,6 +331,7 @@ func (r *queryResolver) Product(ctx context.Context, id string) (*model.Product,
 	return &product, nil
 }
 
+// Orders is the resolver for the orders field.
 func (r *queryResolver) Orders(ctx context.Context) ([]*model.Order, error) {
 	// Send the GET request to the order service running on localhost:8083
 	resp, err := http.Get("http://localhost:8083/orders")
@@ -406,6 +347,7 @@ func (r *queryResolver) Orders(ctx context.Context) ([]*model.Order, error) {
 
 	// Decode the response into a slice of Order models
 	var orders []*model.Order
+
 	if err := json.NewDecoder(resp.Body).Decode(&orders); err != nil {
 		return nil, fmt.Errorf("error decoding response: %v", err)
 	}
@@ -433,7 +375,6 @@ func (r *queryResolver) Order(ctx context.Context, id string) (*model.Order, err
 	if err := json.NewDecoder(resp.Body).Decode(&order); err != nil {
 		return nil, fmt.Errorf("error decoding response: %v", err)
 	}
-
 	// Return the order
 	return &order, nil
 }

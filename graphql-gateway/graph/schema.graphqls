@@ -51,7 +51,7 @@ input ProductInput {
 # Order Service Schema
 type Order {
     id: ID!
-    product_id: ID!
+    name: String!
     quantity: Int!
     status: String!
 }
@@ -67,7 +67,7 @@ extend type Mutation {
 }
 
 input OrderInput {
-    product_id: ID!
+    name: String!
     quantity: Int!
     status: String!
 }

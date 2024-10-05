@@ -2,6 +2,7 @@ package main
 
 import (
 	"gpql-gateway/graph"
+	"gpql-gateway/graph/utils"
 	"log"
 	"net/http"
 	"os"
@@ -18,7 +19,7 @@ func main() {
 		port = defaultPort
 	}
 	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
-
+	utils.InitRabbitMQ()
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", srv)
 

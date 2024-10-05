@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/mail"
 	"user-service/db"
@@ -70,18 +69,7 @@ func HashPassword(password string) (string, error) {
 func GetUsers(c *gin.Context) {
 	var users []model.User
 
-	// Check Redis cache first
-	val, err := utils.RDB.Get(context.Background(), "users").Result()
-	if err == nil {
-		// Cache hit
-		log.Println("Cache hit")
-		if err := json.Unmarshal([]byte(val), &users); err == nil {
-			c.JSON(200, users)
-			return
-		}
-	}
-
-	// Cache miss, query the database
+	// Query the database
 	cursor, err := db.MI.DB.Collection("users").Find(context.Background(), bson.D{})
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Error fetching users"})
@@ -92,15 +80,6 @@ func GetUsers(c *gin.Context) {
 		var user model.User
 		cursor.Decode(&user)
 		users = append(users, user)
-	}
-
-	// Store result in Redis cache
-	data, err := json.Marshal(users)
-	if err == nil {
-		err = utils.RDB.Set(context.Background(), "users", data, 0).Err()
-		if err != nil {
-			log.Printf("Error setting cache: %v", err)
-		}
 	}
 
 	c.JSON(200, users)

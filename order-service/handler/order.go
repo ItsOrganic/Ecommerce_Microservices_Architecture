@@ -95,10 +95,22 @@ func CreateOrder(c *gin.Context) {
 
 // GetOrder retrieves an order by product name
 func GetOrder(c *gin.Context) {
+	productName := c.Param("productName")
 	var order model.Order
 
-	// Find the order by product name
-	cursor, err := db.MI.DB.Collection("orders").Find(context.TODO(), bson.M{"productName": order.ProductName})
+	// Check Redis cache first
+	val, err := utils.RDB.Get(context.Background(), "order:"+productName).Result()
+	if err == nil {
+		// Cache hit
+		log.Println("Cache hit")
+		if err := json.Unmarshal([]byte(val), &order); err == nil {
+			c.JSON(http.StatusOK, order)
+			return
+		}
+	}
+
+	// Cache miss, query the database
+	err = db.MI.DB.Collection("orders").FindOne(context.TODO(), bson.M{"productName": productName}).Decode(&order)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			c.JSON(http.StatusNotFound, gin.H{"error": "order not found"})
@@ -107,9 +119,14 @@ func GetOrder(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching order"})
 		return
 	}
-	defer cursor.Close(context.Background())
-	for cursor.Next(context.Background()) {
-		cursor.Decode(&order)
+
+	// Store result in Redis cache
+	data, err := json.Marshal(order)
+	if err == nil {
+		err = utils.RDB.Set(context.Background(), "order:"+productName, data, 5*time.Minute).Err()
+		if err != nil {
+			log.Printf("Error setting cache: %v", err)
+		}
 	}
 
 	c.JSON(http.StatusOK, order)
@@ -151,18 +168,7 @@ func UpdateStatus(c *gin.Context) {
 func GetOrders(c *gin.Context) {
 	var orders []model.Order
 
-	// Check Redis cache first
-	val, err := utils.RDB.Get(context.Background(), "orders").Result()
-	if err == nil {
-		// Cache hit
-		log.Println("Cache hit")
-		if err := json.Unmarshal([]byte(val), &orders); err == nil {
-			c.JSON(200, orders)
-			return
-		}
-	}
-
-	// Cache miss, query the database
+	// Query the database
 	cursor, err := db.MI.DB.Collection("orders").Find(context.Background(), bson.D{})
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Error fetching orders"})
@@ -173,15 +179,6 @@ func GetOrders(c *gin.Context) {
 		var order model.Order
 		cursor.Decode(&order)
 		orders = append(orders, order)
-	}
-
-	// Store result in Redis cache
-	data, err := json.Marshal(orders)
-	if err == nil {
-		err = utils.RDB.Set(context.Background(), "orders", data, 0).Err()
-		if err != nil {
-			log.Printf("Error setting cache: %v", err)
-		}
 	}
 
 	c.JSON(200, orders)

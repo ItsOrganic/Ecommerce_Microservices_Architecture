@@ -1,0 +1,18 @@
+mutation {
+    registerUser(input: {
+        name: "name",
+        email: "a@bcd.com",
+        password: "password"
+    }) {
+        id
+        name
+        email
+    }
+}
+
+query {
+    users {
+        name
+        email
+    }
+}

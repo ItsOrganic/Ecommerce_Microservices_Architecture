@@ -2,24 +2,25 @@
 
 package model
 
+
 type Mutation struct {
 }
 
 type Order struct {
-	ID        string `json:"id"`
-	ProductID string `json:"product_id"`
-	Quantity  int    `json:"quantity"`
-	Status    string `json:"status"`
+	ID       string `json:"id", bson:"_id"`
+	Name     string `json:"name"`
+	Quantity int    `json:"quantity"`
+	Status   string `json:"status"`
 }
 
 type OrderInput struct {
-	ProductID string `json:"product_id"`
-	Quantity  int    `json:"quantity"`
-	Status    string `json:"status"`
+	Name     string `json:"name"`
+	Quantity int    `json:"quantity"`
+	Status   string `json:"status"`
 }
 
 type Product struct {
-	ID          string  `json:"id"`
+	ID          string  `json:"id", bson:"_id"`
 	Name        string  `json:"name"`
 	Description *string `json:"description,omitempty"`
 	Price       float64 `json:"price"`
@@ -43,7 +44,7 @@ type RegisterInput struct {
 }
 
 type User struct {
-	ID       string `json:"id"`
+	ID       string `json:"id", bson:"_id"`
 	Name     string `json:"name"`
 	Email    string `json:"email"`
 	Password string `json:"password"`

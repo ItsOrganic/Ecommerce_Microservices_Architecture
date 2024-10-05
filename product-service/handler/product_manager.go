@@ -97,18 +97,7 @@ func DeleteProduct(c *gin.Context) {
 func GetProducts(c *gin.Context) {
 	var products []model.Product
 
-	// Check Redis cache first
-	val, err := utils.RDB.Get(context.Background(), "products").Result()
-	if err == nil {
-		// Cache hit
-		log.Println("Cache hit")
-		if err := json.Unmarshal([]byte(val), &products); err == nil {
-			c.JSON(200, products)
-			return
-		}
-	}
-
-	// Cache miss, query the database
+	// Query the database
 	cursor, err := db.MI.DB.Collection("products").Find(context.Background(), bson.D{})
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Error fetching products"})
@@ -121,26 +110,43 @@ func GetProducts(c *gin.Context) {
 		products = append(products, product)
 	}
 
-	// Store result in Redis cache
-	data, err := json.Marshal(products)
-	if err == nil {
-		err = utils.RDB.Set(context.Background(), "products", data, 5*time.Minute).Err()
-		if err != nil {
-			log.Printf("Error setting cache: %v", err)
-		}
-	}
-
 	c.JSON(200, products)
 }
 
 func GetProduct(c *gin.Context) {
 	productName := c.Param("name")
-	filter := bson.D{{Key: "name", Value: productName}}
 	var product model.Product
-	err := db.MI.DB.Collection("products").FindOne(context.TODO(), filter).Decode(&product)
+
+	// Check Redis cache first
+	val, err := utils.RDB.Get(context.Background(), "product:"+productName).Result()
+	if err == nil {
+		// Cache hit
+		log.Println("Cache hit")
+		if err := json.Unmarshal([]byte(val), &product); err == nil {
+			c.JSON(http.StatusOK, product)
+			return
+		}
+	}
+
+	// Cache miss, query the database
+	err = db.MI.DB.Collection("products").FindOne(context.TODO(), bson.M{"name": productName}).Decode(&product)
 	if err != nil {
-		c.JSON(404, gin.H{"error": "Product not found"})
+		if err == mongo.ErrNoDocuments {
+			c.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching product"})
 		return
 	}
-	c.JSON(200, product)
+
+	// Store result in Redis cache
+	data, err := json.Marshal(product)
+	if err == nil {
+		err = utils.RDB.Set(context.Background(), "product:"+productName, data, 5*time.Minute).Err()
+		if err != nil {
+			log.Printf("Error setting cache: %v", err)
+		}
+	}
+
+	c.JSON(http.StatusOK, product)
 }

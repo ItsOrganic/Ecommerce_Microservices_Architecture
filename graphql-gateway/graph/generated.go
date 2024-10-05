@@ -57,10 +57,10 @@ type ComplexityRoot struct {
 	}
 
 	Order struct {
-		ID        func(childComplexity int) int
-		ProductID func(childComplexity int) int
-		Quantity  func(childComplexity int) int
-		Status    func(childComplexity int) int
+		ID       func(childComplexity int) int
+		Name     func(childComplexity int) int
+		Quantity func(childComplexity int) int
+		Status   func(childComplexity int) int
 	}
 
 	Product struct {
@@ -203,12 +203,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Order.ID(childComplexity), true
 
-	case "Order.product_id":
-		if e.complexity.Order.ProductID == nil {
+	case "Order.name":
+		if e.complexity.Order.Name == nil {
 			break
 		}
 
-		return e.complexity.Order.ProductID(childComplexity), true
+		return e.complexity.Order.Name(childComplexity), true
 
 	case "Order.quantity":
 		if e.complexity.Order.Quantity == nil {
@@ -1086,8 +1086,8 @@ func (ec *executionContext) fieldContext_Mutation_placeOrder(ctx context.Context
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Order_id(ctx, field)
-			case "product_id":
-				return ec.fieldContext_Order_product_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Order_name(ctx, field)
 			case "quantity":
 				return ec.fieldContext_Order_quantity(ctx, field)
 			case "status":
@@ -1151,8 +1151,8 @@ func (ec *executionContext) fieldContext_Mutation_updateOrderStatus(ctx context.
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Order_id(ctx, field)
-			case "product_id":
-				return ec.fieldContext_Order_product_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Order_name(ctx, field)
 			case "quantity":
 				return ec.fieldContext_Order_quantity(ctx, field)
 			case "status":
@@ -1219,8 +1219,8 @@ func (ec *executionContext) fieldContext_Order_id(_ context.Context, field graph
 	return fc, nil
 }
 
-func (ec *executionContext) _Order_product_id(ctx context.Context, field graphql.CollectedField, obj *model.Order) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Order_product_id(ctx, field)
+func (ec *executionContext) _Order_name(ctx context.Context, field graphql.CollectedField, obj *model.Order) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Order_name(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1233,7 +1233,7 @@ func (ec *executionContext) _Order_product_id(ctx context.Context, field graphql
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ProductID, nil
+		return obj.Name, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1247,17 +1247,17 @@ func (ec *executionContext) _Order_product_id(ctx context.Context, field graphql
 	}
 	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Order_product_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Order_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Order",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -1845,8 +1845,8 @@ func (ec *executionContext) fieldContext_Query_orders(_ context.Context, field g
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Order_id(ctx, field)
-			case "product_id":
-				return ec.fieldContext_Order_product_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Order_name(ctx, field)
 			case "quantity":
 				return ec.fieldContext_Order_quantity(ctx, field)
 			case "status":
@@ -1896,8 +1896,8 @@ func (ec *executionContext) fieldContext_Query_order(ctx context.Context, field 
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Order_id(ctx, field)
-			case "product_id":
-				return ec.fieldContext_Order_product_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Order_name(ctx, field)
 			case "quantity":
 				return ec.fieldContext_Order_quantity(ctx, field)
 			case "status":
@@ -4005,20 +4005,20 @@ func (ec *executionContext) unmarshalInputOrderInput(ctx context.Context, obj in
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"product_id", "quantity", "status"}
+	fieldsInOrder := [...]string{"name", "quantity", "status"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "product_id":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("product_id"))
-			data, err := ec.unmarshalNID2string(ctx, v)
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.ProductID = data
+			it.Name = data
 		case "quantity":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("quantity"))
 			data, err := ec.unmarshalNInt2int(ctx, v)
@@ -4236,8 +4236,8 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "product_id":
-			out.Values[i] = ec._Order_product_id(ctx, field, obj)
+		case "name":
+			out.Values[i] = ec._Order_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
