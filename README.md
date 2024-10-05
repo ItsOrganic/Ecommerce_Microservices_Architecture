@@ -1,4 +1,21 @@
 # Microservice Assignment Overview
+## Table of Contents
+- [Requirements](#requirements)
+- [Setting Up](#setting-up)
+- [Verifying the Setup](#verifying-the-setup)
+- [POSTMAN WORKSPACE](#postman-workspace)
+- [Accessing the Services](#accessing-the-services)
+- [Steps](#steps)
+- [Overview of Microservice 1 - User Service](#user-service)
+- [Overview of Microservice 2 - Product Service](#product-service)
+- [Overview of Microservice 3 - Order Service](#order-service)
+- [Overview of GraphQl-Gateway ](#graphql-gateway)
+- [Common Components in each service ](#common-components)
+- [Overview of GraphQl-Gateway ](#prometheus-configuration)
+- [Overview of Script ](#script)
+
+
+
 ## Requirements 
 - Docker is mandatory.
 - Golang, RabbitMQ, Redis, Mongo required but if not present it will automatically get downloaded by running the setup script using docker.
