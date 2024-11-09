@@ -1,4 +1,4 @@
-# Microservice Assignment Overview
+# Microservice Overview
 ## Table of Contents
 - [Requirements](#requirements)
 - [Setting Up](#setting-up)
@@ -21,8 +21,8 @@
 - Golang, RabbitMQ, Redis, Mongo required but if not present it will automatically get downloaded by running the setup script using docker.
 
   # Setting Up
-- Clone the repository and go in the pratilipi-assignment path.
-  <pre><code>git clone https://github.com/ItsOrganic/pratilipi-assignment.git && cd pratilipi-assignment</code></pre> 
+- Clone the repository and go in the Ecommerce_Microservices_Architecture path.
+  <pre><code>git clone https://github.com/ItsOrganic/Ecommerce_Microservices_Architecture.git && cd Ecommerce_Microservices_Architecture</code></pre> 
 - Make the script executable and run it will download all the dependencies as well as things required.
 
   <pre><code>chmod +x script.sh </code></pre> 
